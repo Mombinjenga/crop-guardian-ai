@@ -14,7 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      diagnoses: {
+        Row: {
+          created_at: string | null
+          crop_type: string | null
+          description: string | null
+          diagnosis_result: Json | null
+          id: string
+          image_url: string | null
+          location: string | null
+          status: string | null
+          symptoms_duration: string | null
+          updated_at: string | null
+          user_id: string | null
+          weather_conditions: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          crop_type?: string | null
+          description?: string | null
+          diagnosis_result?: Json | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          status?: string | null
+          symptoms_duration?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          weather_conditions?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          crop_type?: string | null
+          description?: string | null
+          diagnosis_result?: Json | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          status?: string | null
+          symptoms_duration?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          weather_conditions?: Json | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_submissions: {
+        Row: {
+          created_at: string | null
+          id: string
+          max_submissions: number | null
+          month_year: string
+          submission_count: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          max_submissions?: number | null
+          month_year: string
+          submission_count?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          max_submissions?: number | null
+          month_year?: string
+          submission_count?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
