@@ -1,1 +1,7 @@
 project_id = "mosrhzfprqieqgpwaurz"
+
+[functions.diagnose-crop]
+verify_jwt = true
+
+[functions.get-submission-status]
+verify_jwt = true
