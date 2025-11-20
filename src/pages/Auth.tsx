@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,56 +6,75 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Leaf } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email");
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) navigate("/");
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Login successful",
-        description: "Welcome back to CropGuard AI!",
-      });
-    }, 1500);
+    const formData = new FormData(e.currentTarget);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: formData.get("login-email") as string,
+      password: formData.get("login-password") as string,
+    });
+    setIsLoading(false);
+    if (error) {
+      toast({ title: "Login failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Login successful", description: "Welcome back!" });
+      navigate("/");
+    }
   };
 
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Account created",
-        description: "Welcome to CropGuard AI! Your account has been created successfully.",
-      });
-    }, 1500);
+    const formData = new FormData(e.currentTarget);
+    const { error } = await supabase.auth.signUp({
+      email: formData.get("signup-email") as string,
+      password: formData.get("signup-password") as string,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+        data: { full_name: formData.get("full-name") as string },
+      },
+    });
+    setIsLoading(false);
+    if (error) {
+      toast({ title: "Signup failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Account created", description: "You can now sign in." });
+    }
   };
 
-  const handleSocialLogin = (provider: string) => {
+  const handleSocialLogin = async (provider: "google" | "facebook") => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: `${provider} login`,
-        description: `Signing in with ${provider}...`,
-      });
-    }, 1000);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/` },
+    });
+    setIsLoading(false);
+    if (error) {
+      toast({ title: `${provider} login failed`, description: error.message, variant: "destructive" });
+    }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-subtle px-4 py-12">
-      <div className="w-full max-w-md">
+    <div className="relative flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+      <div className="relative z-10 w-full max-w-md">
         <div className="mb-8 text-center">
           <Link to="/" className="inline-flex items-center gap-2 transition-smooth hover:opacity-80">
             <Leaf className="h-8 w-8 text-primary" />
@@ -92,6 +111,7 @@ const Auth = () => {
                     variant={loginMethod === "phone" ? "default" : "outline"}
                     onClick={() => setLoginMethod("phone")}
                     className="flex-1"
+                    disabled
                   >
                     Phone
                   </Button>
@@ -101,12 +121,13 @@ const Auth = () => {
                   {loginMethod === "email" ? (
                     <div className="space-y-2">
                       <Label htmlFor="login-email">Email</Label>
-                      <Input
-                        id="login-email"
-                        type="email"
-                        placeholder="name@example.com"
-                        required
-                      />
+                    <Input
+                      id="login-email"
+                      name="login-email"
+                      type="email"
+                      placeholder="name@example.com"
+                      required
+                    />
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -147,7 +168,7 @@ const Auth = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => handleSocialLogin("Google")}
+                    onClick={() => handleSocialLogin("google")}
                     disabled={isLoading}
                   >
                     <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -173,27 +194,13 @@ const Auth = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => handleSocialLogin("Facebook")}
+                    onClick={() => handleSocialLogin("facebook")}
                     disabled={isLoading}
                   >
                     <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
                     Facebook
-                  </Button>
-                </div>
-                <div className="mt-3 grid grid-cols-1 gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleSocialLogin("X")}
-                    disabled={isLoading}
-                    className="w-full"
-                  >
-                    <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                    </svg>
-                    X (Twitter)
                   </Button>
                 </div>
               </TabsContent>
@@ -204,6 +211,7 @@ const Auth = () => {
                     <Label htmlFor="signup-name">Full Name</Label>
                     <Input
                       id="signup-name"
+                      name="full-name"
                       type="text"
                       placeholder="John Doe"
                       required
@@ -213,6 +221,7 @@ const Auth = () => {
                     <Label htmlFor="signup-email">Email</Label>
                     <Input
                       id="signup-email"
+                      name="signup-email"
                       type="email"
                       placeholder="name@example.com"
                       required
@@ -222,19 +231,11 @@ const Auth = () => {
                     <Label htmlFor="signup-password">Password</Label>
                     <Input
                       id="signup-password"
+                      name="signup-password"
                       type="password"
                       placeholder="Min. 8 characters"
                       required
-                      minLength={8}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-confirm">Confirm Password</Label>
-                    <Input
-                      id="signup-confirm"
-                      type="password"
-                      placeholder="Confirm your password"
-                      required
+                      minLength={6}
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
