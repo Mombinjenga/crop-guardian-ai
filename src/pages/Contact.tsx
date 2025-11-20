@@ -30,19 +30,22 @@ const Contact = () => {
     {
       icon: Mail,
       title: "Email",
-      content: "support@cropguard.ai",
+      content: "mumbie166@gmail.com",
       description: "Send us an email anytime",
+      link: "mailto:mumbie166@gmail.com",
     },
     {
       icon: Phone,
       title: "Phone",
-      content: "+1 (555) 123-4567",
-      description: "Mon-Fri from 8am to 6pm",
+      content: "+254 792 931 901",
+      description: "SMS or WhatsApp available",
+      link: "sms:+254792931901",
+      whatsappLink: "https://wa.me/254792931901",
     },
     {
       icon: MapPin,
       title: "Address",
-      content: "123 Farm Lane, Agriculture City, AC 12345",
+      content: "Bishop's Avenue, Gilgil, Nakuru Kenya",
       description: "Visit our office",
     },
     {
@@ -129,8 +132,27 @@ const Contact = () => {
                       <info.icon className="h-6 w-6 text-primary" />
                     </div>
                     <h3 className="mb-1 font-semibold text-foreground">{info.title}</h3>
-                    <p className="mb-1 text-sm font-medium text-foreground">{info.content}</p>
+                    {info.link ? (
+                      <a 
+                        href={info.link}
+                        className="mb-1 block text-sm font-medium text-primary hover:underline"
+                      >
+                        {info.content}
+                      </a>
+                    ) : (
+                      <p className="mb-1 text-sm font-medium text-foreground">{info.content}</p>
+                    )}
                     <p className="text-xs text-muted-foreground">{info.description}</p>
+                    {info.whatsappLink && (
+                      <a
+                        href={info.whatsappLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-block text-xs text-primary hover:underline"
+                      >
+                        Chat on WhatsApp →
+                      </a>
+                    )}
                   </CardContent>
                 </Card>
               ))}
