@@ -1,33 +1,110 @@
+import { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "react-router-dom";
-import { AlertCircle, CheckCircle2, Leaf, ArrowLeft } from "lucide-react";
-import leafComparison from "@/assets/leaf-comparison.jpg";
+import { AlertCircle, CheckCircle2, Leaf, ArrowLeft, Loader2, Bug, Shield, TrendingDown } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface DiagnosisResult {
+  disease_name: string;
+  confidence: string;
+  severity?: string;
+  description: string;
+  causes: string[];
+  symptoms: string[];
+  affected_parts?: string[];
+  treatment: {
+    immediate_actions: string[];
+    chemical_treatment: string[];
+    organic_treatment: string[];
+    preventive_measures: string[];
+  };
+  expected_yield_impact?: string;
+  prognosis: string;
+  additional_questions: string[];
+}
+
+interface Diagnosis {
+  id: string;
+  crop_type: string;
+  diagnosis_result: DiagnosisResult;
+  created_at: string;
+  image_url?: string;
+}
 
 const Results = () => {
-  // Mock diagnosis data
-  const diagnosis = {
-    disease: "Early Blight",
-    confidence: 94,
-    severity: "Moderate",
-    affectedCrop: "Tomato",
+  const { diagnosisId } = useParams();
+  const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (diagnosisId) {
+      fetchDiagnosis();
+    }
+  }, [diagnosisId]);
+
+  const fetchDiagnosis = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('diagnoses')
+        .select('*')
+        .eq('id', diagnosisId)
+        .single();
+
+      if (error) throw error;
+      setDiagnosis(data as unknown as Diagnosis);
+    } catch (err) {
+      console.error('Error fetching diagnosis:', err);
+      setError('Failed to load diagnosis results');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const treatments = [
-    "Remove and destroy affected leaves immediately",
-    "Apply copper-based fungicide every 7-10 days",
-    "Improve air circulation around plants",
-    "Avoid overhead watering; water at the base",
-    "Apply mulch to prevent soil splash",
-  ];
+  const getConfidencePercentage = (confidence: string) => {
+    switch (confidence) {
+      case 'high': return 90;
+      case 'medium': return 70;
+      case 'low': return 50;
+      default: return 70;
+    }
+  };
 
-  const followUpQuestions = [
-    "What type of crop is affected?",
-    "How long have you noticed these symptoms?",
-    "What is your location/region?",
-    "Have you applied any treatments yet?",
-  ];
+  const getSeverityVariant = (severity?: string) => {
+    switch (severity?.toLowerCase()) {
+      case 'severe': return 'destructive';
+      case 'moderate': return 'secondary';
+      default: return 'outline';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !diagnosis) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle py-12">
+        <div className="container mx-auto px-4 text-center">
+          <AlertCircle className="mx-auto h-12 w-12 text-destructive" />
+          <h1 className="mt-4 text-2xl font-bold">Diagnosis Not Found</h1>
+          <p className="mt-2 text-muted-foreground">{error || 'The requested diagnosis could not be found.'}</p>
+          <Button asChild className="mt-4">
+            <Link to="/diagnose">New Diagnosis</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const result = diagnosis.diagnosis_result;
+  const confidencePercent = getConfidencePercentage(result.confidence);
 
   return (
     <div className="min-h-screen bg-gradient-subtle py-12">
@@ -45,7 +122,7 @@ const Results = () => {
               Diagnosis Results
             </h1>
             <p className="text-lg text-muted-foreground">
-              AI-powered analysis of your crop condition
+              AI-powered analysis for {diagnosis.crop_type}
             </p>
           </div>
 
@@ -54,15 +131,14 @@ const Results = () => {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div>
-                  <CardTitle className="mb-2 text-2xl">{diagnosis.disease}</CardTitle>
-                  <CardDescription>Detected in {diagnosis.affectedCrop}</CardDescription>
+                  <CardTitle className="mb-2 text-2xl">{result.disease_name}</CardTitle>
+                  <CardDescription>Detected in {diagnosis.crop_type}</CardDescription>
                 </div>
-                <Badge
-                  variant={diagnosis.severity === "High" ? "destructive" : "secondary"}
-                  className="text-sm"
-                >
-                  {diagnosis.severity} Severity
-                </Badge>
+                {result.severity && (
+                  <Badge variant={getSeverityVariant(result.severity)} className="text-sm">
+                    {result.severity} Severity
+                  </Badge>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -70,26 +146,74 @@ const Results = () => {
                 <div className="flex-1">
                   <div className="mb-1 flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Confidence Level</span>
-                    <span className="font-semibold text-primary">{diagnosis.confidence}%</span>
+                    <span className="font-semibold text-primary capitalize">{result.confidence} ({confidencePercent}%)</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div
                       className="h-full bg-primary transition-smooth"
-                      style={{ width: `${diagnosis.confidence}%` }}
+                      style={{ width: `${confidencePercent}%` }}
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-lg">
-                <img
-                  src={leafComparison}
-                  alt="Diagnosed crop condition"
-                  className="h-64 w-full object-cover"
-                />
-              </div>
+              <p className="text-foreground">{result.description}</p>
+
+              {result.affected_parts && result.affected_parts.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="text-sm text-muted-foreground">Affected parts:</span>
+                  {result.affected_parts.map((part, idx) => (
+                    <Badge key={idx} variant="outline">{part}</Badge>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          {/* Symptoms & Causes */}
+          <div className="mb-6 grid gap-6 md:grid-cols-2">
+            {result.symptoms.length > 0 && (
+              <Card className="shadow-soft">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Bug className="h-5 w-5 text-destructive" />
+                    Symptoms
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {result.symptoms.map((symptom, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-sm">
+                        <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-destructive" />
+                        {symptom}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+
+            {result.causes.length > 0 && (
+              <Card className="shadow-soft">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <AlertCircle className="h-5 w-5 text-accent" />
+                    Causes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {result.causes.map((cause, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-sm">
+                        <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent" />
+                        {cause}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
           {/* Treatment Recommendations */}
           <Card className="mb-6 shadow-soft">
@@ -100,61 +224,118 @@ const Results = () => {
               </CardTitle>
               <CardDescription>Follow these steps to manage the disease</CardDescription>
             </CardHeader>
-            <CardContent>
-              <ul className="space-y-3">
-                {treatments.map((treatment, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
-                    <span className="text-foreground">{treatment}</span>
-                  </li>
-                ))}
-              </ul>
+            <CardContent className="space-y-6">
+              {result.treatment.immediate_actions.length > 0 && (
+                <div>
+                  <h4 className="mb-3 font-semibold text-destructive">⚡ Immediate Actions</h4>
+                  <ul className="space-y-2">
+                    {result.treatment.immediate_actions.map((action, idx) => (
+                      <li key={idx} className="flex items-start gap-3">
+                        <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-destructive" />
+                        <span className="text-foreground">{action}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-              <div className="mt-6 rounded-lg bg-muted/50 p-4">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-accent" />
-                  <div className="text-sm">
-                    <p className="font-medium text-foreground">Important Note</p>
-                    <p className="text-muted-foreground">
-                      Always consult with a local agricultural expert for severe infestations.
-                      Early intervention is key to preventing crop loss.
-                    </p>
-                  </div>
+              {result.treatment.chemical_treatment.length > 0 && (
+                <div>
+                  <h4 className="mb-3 font-semibold text-primary">🧪 Chemical Treatment</h4>
+                  <ul className="space-y-2">
+                    {result.treatment.chemical_treatment.map((treatment, idx) => (
+                      <li key={idx} className="flex items-start gap-3">
+                        <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
+                        <span className="text-foreground">{treatment}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {result.treatment.organic_treatment.length > 0 && (
+                <div>
+                  <h4 className="mb-3 font-semibold text-green-600">🌿 Organic Treatment</h4>
+                  <ul className="space-y-2">
+                    {result.treatment.organic_treatment.map((treatment, idx) => (
+                      <li key={idx} className="flex items-start gap-3">
+                        <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-600" />
+                        <span className="text-foreground">{treatment}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {result.treatment.preventive_measures.length > 0 && (
+                <div>
+                  <h4 className="mb-3 flex items-center gap-2 font-semibold">
+                    <Shield className="h-4 w-4" />
+                    Preventive Measures
+                  </h4>
+                  <ul className="space-y-2">
+                    {result.treatment.preventive_measures.map((measure, idx) => (
+                      <li key={idx} className="flex items-start gap-3">
+                        <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                        <span className="text-foreground">{measure}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Prognosis & Yield Impact */}
+          <div className="mb-6 grid gap-6 md:grid-cols-2">
+            <Card className="shadow-soft">
+              <CardHeader>
+                <CardTitle className="text-lg">Prognosis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-foreground">{result.prognosis}</p>
+              </CardContent>
+            </Card>
+
+            {result.expected_yield_impact && (
+              <Card className="shadow-soft">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <TrendingDown className="h-5 w-5 text-accent" />
+                    Expected Yield Impact
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-foreground">{result.expected_yield_impact}</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Important Note */}
+          <Card className="mb-6 border-accent/50 bg-accent/5 shadow-soft">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-accent" />
+                <div className="text-sm">
+                  <p className="font-medium text-foreground">Important Note</p>
+                  <p className="text-muted-foreground">
+                    This AI diagnosis is for guidance only. Always consult with a local agricultural extension officer or expert for severe cases. Early intervention is key to preventing crop loss.
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Follow-up Questions */}
-          <Card className="shadow-soft">
-            <CardHeader>
-              <CardTitle>Additional Information</CardTitle>
-              <CardDescription>
-                Help us provide more accurate recommendations
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {followUpQuestions.map((question, index) => (
-                  <div key={index} className="rounded-lg border border-border p-4">
-                    <p className="mb-2 font-medium text-foreground">{question}</p>
-                    <input
-                      type="text"
-                      placeholder="Your answer..."
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 flex gap-3">
-                <Button className="flex-1">Submit Answers</Button>
-                <Button variant="outline" asChild>
-                  <Link to="/diagnose">New Diagnosis</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Actions */}
+          <div className="flex justify-center gap-3">
+            <Button asChild>
+              <Link to="/diagnose">New Diagnosis</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/account">View History</Link>
+            </Button>
+          </div>
         </div>
       </div>
     </div>
