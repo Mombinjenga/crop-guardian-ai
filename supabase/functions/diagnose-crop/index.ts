@@ -58,34 +58,67 @@ serve(async (req) => {
       );
     }
 
+    // Crop-specific knowledge base
+    const cropKnowledge: Record<string, string> = {
+      // Cereals
+      "Maize (Corn)": "Common diseases: Northern Corn Leaf Blight, Gray Leaf Spot, Maize Streak Virus, Stalk Rot, Fall Armyworm damage. Key symptoms: lesions, streaking, wilting, ear rot.",
+      "Rice": "Common diseases: Rice Blast, Bacterial Leaf Blight, Brown Spot, Sheath Blight, Tungro Virus. Key symptoms: lesions, yellowing, wilting, panicle damage.",
+      "Wheat": "Common diseases: Rust (Yellow, Brown, Black), Powdery Mildew, Fusarium Head Blight, Septoria. Key symptoms: pustules, powdery coating, head scab.",
+      "Sorghum": "Common diseases: Anthracnose, Grain Mold, Charcoal Rot, Downy Mildew. Key symptoms: leaf spots, discolored grain, lodging.",
+      "Millet": "Common diseases: Downy Mildew, Blast, Ergot, Smut. Key symptoms: green ear, blast lesions, ergot bodies.",
+      // Tubers
+      "Cassava": "Common diseases: Cassava Mosaic Disease, Cassava Brown Streak, Bacterial Blight, Anthracnose. Key symptoms: mosaic patterns, brown streaks in roots, wilting.",
+      "Sweet Potato": "Common diseases: Sweet Potato Virus Disease, Black Rot, Soft Rot, Weevil damage. Key symptoms: leaf distortion, black lesions, tunneling.",
+      "Yam": "Common diseases: Yam Mosaic Virus, Anthracnose, Dry Rot, Nematode damage. Key symptoms: mosaic, die-back, tuber rot.",
+      "Irish Potato": "Common diseases: Late Blight, Early Blight, Bacterial Wilt, Potato Virus Y. Key symptoms: water-soaked lesions, target spots, wilting.",
+      "Taro (Cocoyam)": "Common diseases: Taro Leaf Blight, Pythium Rot, Dasheen Mosaic Virus. Key symptoms: leaf lesions, corm rot, mosaic.",
+      // Legumes
+      "Beans": "Common diseases: Angular Leaf Spot, Anthracnose, Bean Common Mosaic, Rust. Key symptoms: angular spots, sunken lesions, mosaic.",
+      "Groundnuts (Peanuts)": "Common diseases: Early Leaf Spot, Late Leaf Spot, Rust, Aflatoxin contamination. Key symptoms: spots, defoliation, pod rot.",
+      "Soybeans": "Common diseases: Soybean Rust, Frogeye Leaf Spot, Sudden Death Syndrome. Key symptoms: pustules, spots, interveinal chlorosis.",
+    };
+
+    const cropInfo = cropType && cropKnowledge[cropType] ? cropKnowledge[cropType] : "";
+
     // Prepare AI prompt
-    const prompt = `You are an expert agricultural AI assistant specializing in crop disease diagnosis.
+    const prompt = `You are an expert agricultural AI assistant specializing in food crop disease diagnosis, with deep expertise in cereals (maize, rice, wheat, sorghum, millet), tubers (cassava, sweet potato, yam, potato, taro), and legumes.
 
-Analyze the following information about a crop issue:
-${imageUrl ? '- An image has been provided showing the affected crop' : ''}
-${description ? `- Description: ${description}` : ''}
-${cropType ? `- Crop type: ${cropType}` : ''}
+CROP BEING ANALYZED: ${cropType || "Not specified"}
+${cropInfo ? `\nRELEVANT DISEASE KNOWLEDGE FOR THIS CROP:\n${cropInfo}` : ''}
+
+SUBMITTED INFORMATION:
+${imageUrl ? '- An image has been provided showing the affected crop' : '- No image provided'}
+${description ? `- Farmer's description: ${description}` : '- No description provided'}
 ${symptomsDuration ? `- Symptoms duration: ${symptomsDuration}` : ''}
-${location ? `- Location: ${location}` : ''}
+${location ? `- Climate region: ${location}` : ''}
 
-Provide a comprehensive diagnosis in the following JSON structure:
+INSTRUCTIONS:
+1. Analyze the image and/or description carefully
+2. Consider the specific crop type and common diseases affecting it
+3. Factor in the climate region if provided
+4. Provide practical, affordable treatment options suitable for smallholder farmers
+
+Respond with a JSON object in this exact structure:
 {
-  "disease_name": "Name of the disease or issue",
+  "disease_name": "Name of the disease or issue identified",
   "confidence": "high/medium/low",
-  "description": "Detailed description of the disease",
-  "causes": ["List of possible causes"],
-  "symptoms": ["List of symptoms"],
+  "severity": "mild/moderate/severe",
+  "description": "Clear explanation of the disease and how it affects ${cropType || 'the crop'}",
+  "causes": ["List of factors that cause or spread this disease"],
+  "symptoms": ["List of visible symptoms to look for"],
+  "affected_parts": ["Which parts of the plant are affected: leaves/stems/roots/tubers/grain"],
   "treatment": {
-    "immediate_actions": ["Immediate steps to take"],
-    "chemical_treatment": ["Recommended chemicals/pesticides with usage instructions"],
-    "organic_treatment": ["Organic alternatives"],
-    "preventive_measures": ["Long-term prevention strategies"]
+    "immediate_actions": ["Urgent steps to take now to limit damage"],
+    "chemical_treatment": ["Specific fungicides/pesticides with dosage and application method"],
+    "organic_treatment": ["Natural alternatives like neem, ash, crop rotation"],
+    "preventive_measures": ["Long-term strategies to prevent recurrence"]
   },
-  "prognosis": "Expected outcome and timeline",
-  "additional_questions": ["2-3 follow-up questions to refine diagnosis"]
+  "expected_yield_impact": "Estimated impact on yield if untreated vs treated",
+  "prognosis": "Expected recovery timeline with proper treatment",
+  "additional_questions": ["2-3 follow-up questions to refine the diagnosis"]
 }
 
-Be specific, practical, and actionable in your recommendations.`;
+Be specific, practical, and consider that farmers may have limited resources. Recommend locally available treatments when possible.`;
 
     // Call Lovable AI
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -145,15 +178,18 @@ Be specific, practical, and actionable in your recommendations.`;
       diagnosisResult = {
         disease_name: "Analysis Complete",
         confidence: "medium",
+        severity: "unknown",
         description: aiContent,
         causes: [],
         symptoms: [],
+        affected_parts: [],
         treatment: {
           immediate_actions: [],
           chemical_treatment: [],
           organic_treatment: [],
           preventive_measures: []
         },
+        expected_yield_impact: "Unable to estimate",
         prognosis: "Please consult with a local agricultural expert for detailed treatment plan.",
         additional_questions: []
       };
