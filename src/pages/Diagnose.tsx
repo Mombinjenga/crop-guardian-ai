@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, FileImage, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, FileImage, AlertCircle, Loader2, Leaf } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +35,7 @@ const Diagnose = () => {
   const [symptoms, setSymptoms] = useState("");
   const [cropCategory, setCropCategory] = useState("");
   const [cropType, setCropType] = useState("");
+  const [customCrop, setCustomCrop] = useState("");
   const [symptomsDuration, setSymptomsDuration] = useState("");
   const [location, setLocation] = useState("");
   const [isDragging, setIsDragging] = useState(false);
@@ -48,6 +50,8 @@ const Diagnose = () => {
   useEffect(() => {
     if (user) {
       fetchSubmissionStatus();
+    } else {
+      setIsLoadingStatus(false);
     }
   }, [user]);
 
@@ -110,11 +114,20 @@ const Diagnose = () => {
     });
   };
 
+  const getFinalCropType = () => {
+    if (cropType === "other") {
+      return customCrop.trim();
+    }
+    return cropType;
+  };
+
   const handleSubmit = async () => {
-    if (!cropType) {
+    const finalCropType = getFinalCropType();
+    
+    if (!finalCropType) {
       toast({
-        title: "Select crop type",
-        description: "Please select the type of crop you want to diagnose.",
+        title: "Select or enter crop type",
+        description: "Please select a crop from the list or enter a custom crop name.",
         variant: "destructive",
       });
       return;
@@ -126,6 +139,16 @@ const Diagnose = () => {
         description: "Please upload an image or describe the symptoms.",
         variant: "destructive",
       });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Login required",
+        description: "Please log in to submit a diagnosis request.",
+        variant: "destructive",
+      });
+      navigate('/auth');
       return;
     }
 
@@ -141,7 +164,7 @@ const Diagnose = () => {
         body: {
           imageUrl,
           description: symptoms,
-          cropType,
+          cropType: finalCropType,
           symptomsDuration,
           location
         }
@@ -178,6 +201,7 @@ const Diagnose = () => {
 
   const progressPercentage = (submissionsRemaining / totalSubmissions) * 100;
   const availableCrops = cropCategory ? CROP_CATEGORIES[cropCategory as keyof typeof CROP_CATEGORIES]?.crops || [] : [];
+  const canSubmit = (getFinalCropType() && (selectedFile || symptoms));
 
   return (
     <div className="min-h-screen bg-gradient-subtle py-12">
@@ -193,34 +217,36 @@ const Diagnose = () => {
           </div>
 
           {/* Usage Indicator */}
-          <Card className="mb-6 shadow-soft">
-            <CardContent className="pt-6">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-medium">Monthly Submissions</span>
-                <span className="text-sm font-semibold text-primary">
-                  {isLoadingStatus ? "..." : `${submissionsRemaining} of ${totalSubmissions} remaining`}
-                </span>
-              </div>
-              <Progress value={progressPercentage} className="h-2" />
-              <p className="mt-2 text-xs text-muted-foreground">
-                {submissionsRemaining === 0 ? (
-                  <span className="flex items-center gap-1 text-destructive">
-                    <AlertCircle className="h-3 w-3" />
-                    No submissions remaining. Upgrade to continue.
+          {user && (
+            <Card className="mb-6 shadow-soft">
+              <CardContent className="pt-6">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-sm font-medium">Monthly Submissions</span>
+                  <span className="text-sm font-semibold text-primary">
+                    {isLoadingStatus ? "..." : `${submissionsRemaining} of ${totalSubmissions} remaining`}
                   </span>
-                ) : (
-                  "Upgrade to Pro for unlimited submissions"
-                )}
-              </p>
-            </CardContent>
-          </Card>
+                </div>
+                <Progress value={progressPercentage} className="h-2" />
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {submissionsRemaining === 0 ? (
+                    <span className="flex items-center gap-1 text-destructive">
+                      <AlertCircle className="h-3 w-3" />
+                      No submissions remaining. Upgrade to continue.
+                    </span>
+                  ) : (
+                    "Upgrade to Pro for unlimited submissions"
+                  )}
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Crop Selection */}
           <Card className="mb-6 shadow-soft">
             <CardHeader>
               <CardTitle>Select Crop Type</CardTitle>
               <CardDescription>
-                Choose the category and specific crop for accurate diagnosis
+                Choose from the list or type your own crop name
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -230,6 +256,7 @@ const Diagnose = () => {
                   <Select value={cropCategory} onValueChange={(value) => {
                     setCropCategory(value);
                     setCropType("");
+                    setCustomCrop("");
                   }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
@@ -240,23 +267,47 @@ const Diagnose = () => {
                           {category.label}
                         </SelectItem>
                       ))}
+                      <SelectItem value="other-category">Other Category</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Specific Crop</label>
-                  <Select value={cropType} onValueChange={setCropType} disabled={!cropCategory}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={cropCategory ? "Select crop" : "Select category first"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableCrops.map((crop) => (
-                        <SelectItem key={crop} value={crop}>
-                          {crop}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {cropCategory === "other-category" ? (
+                    <Input
+                      placeholder="Type your crop name..."
+                      value={customCrop}
+                      onChange={(e) => {
+                        setCustomCrop(e.target.value);
+                        setCropType("other");
+                      }}
+                    />
+                  ) : (
+                    <Select value={cropType} onValueChange={(value) => {
+                      setCropType(value);
+                      if (value !== "other") setCustomCrop("");
+                    }} disabled={!cropCategory}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={cropCategory ? "Select crop" : "Select category first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableCrops.map((crop) => (
+                          <SelectItem key={crop} value={crop}>
+                            {crop}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="other">Other (type your own)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {cropType === "other" && cropCategory !== "other-category" && (
+                    <Input
+                      placeholder="Type your crop name..."
+                      value={customCrop}
+                      onChange={(e) => setCustomCrop(e.target.value)}
+                      className="mt-2"
+                    />
+                  )}
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -312,7 +363,9 @@ const Diagnose = () => {
                 className={`relative flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-smooth ${
                   isDragging
                     ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50 hover:bg-muted/50"
+                    : selectedFile 
+                      ? "border-primary/50 bg-primary/5" 
+                      : "border-border hover:border-primary/50 hover:bg-muted/50"
                 }`}
               >
                 <input
@@ -328,6 +381,7 @@ const Diagnose = () => {
                     <p className="text-sm text-muted-foreground">
                       {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                     </p>
+                    <p className="mt-2 text-xs text-primary">Click to change image</p>
                   </div>
                 ) : (
                   <div className="text-center">
@@ -364,23 +418,39 @@ const Diagnose = () => {
           </Card>
 
           {/* Submit Button */}
-          <div className="flex justify-center">
-            <Button
-              size="lg"
-              onClick={handleSubmit}
-              disabled={submissionsRemaining === 0 || isLoading || !cropType}
-              className="min-w-[200px] shadow-medium"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                "Analyze Crop"
-              )}
-            </Button>
-          </div>
+          <Card className="shadow-soft bg-primary/5 border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center gap-4">
+                <Button
+                  size="lg"
+                  onClick={handleSubmit}
+                  disabled={(user && submissionsRemaining === 0) || isLoading || !canSubmit}
+                  className="min-w-[250px] h-14 text-lg shadow-medium"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Leaf className="mr-2 h-5 w-5" />
+                      Analyze My Crop
+                    </>
+                  )}
+                </Button>
+                <p className="text-sm text-muted-foreground text-center">
+                  {!canSubmit ? (
+                    "Select a crop and upload an image or describe symptoms to continue"
+                  ) : !user ? (
+                    "You'll need to log in to submit"
+                  ) : (
+                    "Click to get AI-powered diagnosis results"
+                  )}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
