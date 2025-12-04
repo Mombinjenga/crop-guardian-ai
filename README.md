@@ -35,3 +35,5 @@ The system analyzes either uploaded leaf images or manually entered crop informa
 - Real-time camera-based detection
 - Weather-based disease and pest forecasting
 - Support for additional crop varieties and larger datasets
+
+- live demo: https://crop-disease-detectorai.netlify.app/
