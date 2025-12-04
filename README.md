@@ -1,73 +1,61 @@
-# Welcome to your Lovable project
+🌱 Crop Diseases & Pests Detection & Recommendation System
 
-## Project info
+This project is a machine learning–based system designed to detect crop diseases and pest infestations affecting major cereal crops such as maize, wheat, rice, and sorghum. It supports both image-based detection (using leaf photos) and tabular data analysis (symptoms, environmental factors, etc.). After identifying a disease or pest, the system provides clear, practical recommendations based on standard agricultural practices.
 
-**URL**: https://lovable.dev/projects/c5a7de4e-0c30-4ee4-9b5d-7f2b4cdbd167
+🔍 Overview
 
-## How can I edit this code?
+The system analyzes either uploaded leaf images or manually entered farm data and predicts the most likely disease or pest affecting the crop. It then provides prevention and management recommendations to help farmers reduce losses and improve productivity.
 
-There are several ways of editing your application.
+✨ Features
 
-**Use Lovable**
+Detection of common diseases and pests affecting cereal crops
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/c5a7de4e-0c30-4ee4-9b5d-7f2b4cdbd167) and start prompting.
+Support for both image input and tabular symptom data
 
-Changes made via Lovable will be committed automatically to this repo.
+Machine learning model for prediction
 
-**Use your preferred IDE**
+Automated recommendation engine for prevention and control
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Visualization of trends and patterns (EDA)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+🧠 Technologies Used
 
-Follow these steps:
+Python
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Pandas, NumPy
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Scikit-learn
 
-# Step 3: Install the necessary dependencies.
-npm i
+TensorFlow or PyTorch (for image models)
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+Matplotlib, Seaborn
 
-**Edit a file directly in GitHub**
+Streamlit or Flask for a simple interface
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+🚀 How It Works
 
-**Use GitHub Codespaces**
+User uploads a leaf image or enters the crop symptoms.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+The system preprocesses the input and sends it to a trained ML model.
 
-## What technologies are used for this project?
+The model predicts the likely disease or pest.
 
-This project is built with:
+The engine generates recommendations on prevention, field management, and monitoring.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+📊 Current Focus
 
-## How can I deploy this project?
+Cereal crops (maize, wheat, rice, sorghum)
 
-Simply open [Lovable](https://lovable.dev/projects/c5a7de4e-0c30-4ee4-9b5d-7f2b4cdbd167) and click on Share -> Publish.
+Common fungal diseases, bacterial infections, and major pest attacks
 
-## Can I connect a custom domain to my Lovable project?
+Simple ML models (Decision Trees, CNN for images)
 
-Yes, you can!
+📌 Future Improvements
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Mobile application version
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Real-time detection using a live camera
+
+Integration with weather-based disease forecasting
+
+Support for more crop varieties and larger datasets
